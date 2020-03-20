@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: example-pod
+spec:
+  containers:
+  - name: example-pod
+    image: docker.io/YourDockerUsername/example-image:v1
+    args: ["sleep", "21600"]
+    volumeMounts:
+    - mountPath: /testvol
+      name: testvol
+  restartPolicy: Never
+  volumes:
+    - name: testvol
+      persistentVolumeClaim:
+        claimName: testvol

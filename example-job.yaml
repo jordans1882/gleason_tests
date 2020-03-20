@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: example-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: example-job
+        image: docker.io/jordans1882/example-image:v1
+        command:
+        - "spades.py"
+        args:
+        - "-1 /testvol/SampleData/SRR396636.sra_1.fastq -2 /testvol/SampleData/SRR396636.sra_2.fastq --careful --cov-cutoff auto -t 20 -o /testvol/SampleOutput"
+        volumeMounts:
+        - name: gleasonvol
+          mountPath: /gleasonvol
+        resources:
+          limits:
+            memory: 80Gi
+            cpu: "25"
+            #nvidia.com/gpu: "1"
+          requests:
+            memory: 40Gi
+            cpu: "20"
+            #nvidia.com/gpu: "1"
+      volumes:
+      - name: gleasonvol
+        persistentVolumeClaim:
+            claimName: gleasonvol
+      restartPolicy: Never
+  backoffLimit: 5

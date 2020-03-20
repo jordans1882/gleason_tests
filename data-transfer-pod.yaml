@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: data-transfer-pod
+spec:
+  containers:
+  - name: data-transfer-pod
+    image: docker.io/ubuntu
+    args: ["sleep", "36500000"]
+    volumeMounts:
+    - mountPath: /gleasonvol
+      name: gleasonvol
+  restartPolicy: Never
+  volumes:
+    - name: gleasonvol
+      persistentVolumeClaim:
+        claimName: gleasonvol

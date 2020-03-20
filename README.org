@@ -1,0 +1,127 @@
+* A simple tutorial using nautilus
+
+** Step 0: Setup docker image
+ 
+First, we need to start the docker service in systemd:
+
+#+BEGIN_SRC bash
+systemctl start docker.service
+#+END_SRC
+
+Now, we build the docker image from the Dockerfile:
+
+#+BEGIN_SRC bash
+sudo docker build -t ubuntu/gleason .
+sudo docker run -i -t 5ff5e3d68266 /bin/bash
+#+END_SRC
+
+Now, we need to setup the docker image on Ubuntu with the things we need:
+
+#+BEGIN_SRC bash
+systemctl start docker.service
+sudo docker pull ubuntu
+sudo docker run -t -d --name gleason ubuntu
+sudo docker exec -it gleason /bin/bash
+#+END_SRC
+
+ 
+** Step 1: Setup Storage Volume
+
+The first thing we need to do is setup the storage volume. The file associated
+to this is [[file:create-volume.yaml][create-volume.yaml]] file. Now, to mount the volume, we simply run:
+
+#+BEGIN_SRC bash
+kubectl create -n msu-nisl -f create-volume.yaml
+#+END_SRC
+
+We can check the status of the drive with 
+
+#+BEGIN_SRC bash
+kubectl get -f create-volume.yaml -n msu-nisl
+#+END_SRC
+
+** Step 2: Transfer data to Storage Volume
+
+We should now have 40GB of memory associated to a volume called gleasonvol.
+However, we have no data on the volume and will need to transfer it. We begin
+the transfer process by starting the data transfer pod associated to
+[[file:data-transfer-pod.yaml][data-transfer-pod.yaml]]. To start the pod, we run
+
+#+BEGIN_SRC bash
+kubectl create -n msu-nisl -f data-transfer-pod.yaml
+#+END_SRC
+
+Now that we have a transfer pod running, let's double check that it is running with:
+
+#+BEGIN_SRC bash
+kubectl get pods -n msu-nisl
+# ls $QUBBD_DATA_PATH/tulane_images/rois/raw
+
+#+END_SRC
+
+When we confirm that the data transfer pod is running, let's transfer the data with
+
+#+BEGIN_SRC bash
+kubectl cp $QUBBD_DATA_PATH/tulane_images/rois/raw msu-nisl/data-transfer-pod:/gleasonvol/raw/
+#+END_SRC
+
+Once we have the data on the gleasonvol volume, let's stop the data transfer
+pod. We can do this by running
+
+#+BEGIN_SRC bash
+kubectl delete -n msu-nisl -f data-transfer-pod.yaml)
+#+END_SRC
+
+** Step 3: Run a simple job
+
+Now that we have data on the Ceph storage, we can run our job that utilizes this
+data. We do this by starting the pod associated with the [[file:example-job.yaml][example-job.yaml]] file
+by running the following.
+
+#+BEGIN_SRC bash
+kubectl create -n msu-nisl -f example-job.yaml)
+#+END_SRC
+
+Check on the status of the job by running
+
+#+BEGIN_SRC bash
+kubectl get pods -n msu-nisl
+#+END_SRC
+
+Once the job is finished, we can delete it with.
+
+#+BEGIN_SRC bash
+kubectl delete -n msu-nisl -f example-job.yaml
+#+END_SRC
+
+
+** Step 4: Transfer results 
+   
+We will want to transfer the results from the job back to a local
+machine. First, we mus get the data transfer pod back up and running with
+
+#+BEGIN_SRC bash
+kubectl create -n msu-nisl -f data-transfer-pod.yaml
+#+END_SRC
+
+Now, we simply copy the results back to the local machine with:
+
+#+BEGIN_SRC bash
+kubectl cp msu-nisl/data-transfer-pod:/gleasonvol/SampleOutput ./results
+#+END_SRC
+
+** Step 5: Destroy Storage Volume
+
+Once results are obtained and we no longer need the storage volume, we will need
+to remove it as it will persist on Nautilus until it is deleted. We can check
+the status with
+
+#+BEGIN_SRC bash
+kubectl get -f create-volume.yaml -n msu-nisl
+#+END_SRC
+
+Finally, we can delete the allocation with 
+
+#+BEGIN_SRC bash
+kubectl delete -n msu-nisl -f create-volume.yaml
+#+END_SRC

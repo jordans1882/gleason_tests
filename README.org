@@ -11,17 +11,60 @@ systemctl start docker.service
 Now, we build the docker image from the Dockerfile:
 
 #+BEGIN_SRC bash
-sudo docker build -t ubuntu/gleason .
-sudo docker run -i -t 5ff5e3d68266 /bin/bash
+sudo docker build -t jordans1882/gleason-test:v1 .
 #+END_SRC
 
-Now, we need to setup the docker image on Ubuntu with the things we need:
+
+Once the docker image is built, we can create a container  
 
 #+BEGIN_SRC bash
-systemctl start docker.service
-sudo docker pull ubuntu
-sudo docker run -t -d --name gleason ubuntu
-sudo docker exec -it gleason /bin/bash
+sudo docker run --gpus all -i -t --name gleason-test jordans1882/gleason-test:v1 /bin/bash
+# TODO: check if we want to remove interactive mode
+# Maybe use docker container create here?
+#+END_SRC
+
+With our docker container running, we can now start the container with:
+
+#+BEGIN_SRC bash
+sudo docker container start gleason-test
+#+END_SRC
+
+Finally, with the container running we can attach to it with
+
+#+BEGIN_SRC bash
+sudo docker container attach gleason-test
+#+END_SRC
+
+For cleaning up all docker containers, run the following:
+
+#+BEGIN_SRC bash
+sudo docker stop $(sudo docker ps -a -q)
+sudo docker rm $(sudo docker ps -a -q)
+#+END_SRC
+
+Now, we need can commit our docker container. First, exit out of the
+container. Then, run the following command.
+
+#+BEGIN_SRC bash
+sudo docker commit -m "Create example gpu image" gleason-test jordans1882/example-gleason:v1
+#+END_SRC
+
+Now, let's push these results up to docker hub. First, sign in with
+
+#+BEGIN_SRC bash
+sudo docker login
+#+END_SRC
+
+Then, push the results up with 
+
+#+BEGIN_SRC bash
+sudo docker push
+#+END_SRC
+
+Then, you can remove the local image using:
+
+#+BEGIN_SRC bash
+docker rmi jordans1882/gleason-test:v1
 #+END_SRC
 
  
@@ -55,22 +98,58 @@ Now that we have a transfer pod running, let's double check that it is running w
 
 #+BEGIN_SRC bash
 kubectl get pods -n msu-nisl
-# ls $QUBBD_DATA_PATH/tulane_images/rois/raw
-
 #+END_SRC
 
 When we confirm that the data transfer pod is running, let's transfer the data with
 
 #+BEGIN_SRC bash
-kubectl cp $QUBBD_DATA_PATH/tulane_images/rois/raw msu-nisl/data-transfer-pod:/gleasonvol/raw/
+kubectl cp /home/jschup/data/gleason/tulane_images/rois/raw msu-nisl/data-transfer-pod:/gleasonvol/raw
 #+END_SRC
+
+Now, let's transfer a script to run.
+
+#+BEGIN_SRC bash
+kubectl cp /home/jschup/nautilus/gleason_tests/virtual_mnt msu-nisl/data-transfer-pod:/gleasonvol/virtual_mnt
+#+END_SRC
+
 
 Once we have the data on the gleasonvol volume, let's stop the data transfer
 pod. We can do this by running
 
 #+BEGIN_SRC bash
-kubectl delete -n msu-nisl -f data-transfer-pod.yaml)
+kubectl delete -n msu-nisl -f data-transfer-pod.yaml
 #+END_SRC
+
+** Step 2.5: Check the data is there
+
+Now, that we have some data on the Ceph storage, let's run a shell job to make
+sure our environment is setup correctly and our data is there. First, run the
+following code to setup the pod
+
+#+BEGIN_SRC bash
+kubectl create -n msu-nisl -f example-shell.yaml
+#+END_SRC
+
+Now, monitor whether or not the pod is running by running the following code:
+
+#+BEGIN_SRC bash
+kubectl get pods -n msu-nisl
+#+END_SRC
+
+Now, run bash in the pod by running the following line of code:
+
+#+BEGIN_SRC bash
+kubectl exec -it gleason-shell bash
+#+END_SRC
+
+Once you're done checking things out (i.e. data is in the right place,
+environment setup correctly), exit out and delete the pod using:
+
+#+BEGIN_SRC bash
+kubectl delete pod gleason-shell
+#+END_SRC
+
+
 
 ** Step 3: Run a simple job
 
@@ -79,7 +158,7 @@ data. We do this by starting the pod associated with the [[file:example-job.yaml
 by running the following.
 
 #+BEGIN_SRC bash
-kubectl create -n msu-nisl -f example-job.yaml)
+kubectl create -n msu-nisl -f example-job.yaml
 #+END_SRC
 
 Check on the status of the job by running

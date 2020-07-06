@@ -19,43 +19,33 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
      rm -rf /var/lib/apt/lists/*
 
 
+ENV PATH="/usr/local/cuda-10.1/bin:${PATH:+:${PATH}}"
+ENV LD_LIBRARY_PATH="/usr/local/cuda-10.1/lib64:${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+
 WORKDIR /root
+RUN touch .bash_profile
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
     sh Miniconda3-latest-Linux-x86_64.sh -b && \
-    echo "PATH=/root/miniconda3/bin:$PATH" >> .bashrc && \
     /root/miniconda3/bin/conda install -y pytorch
-# RUN curl -o ~/miniconda.sh -O  https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
-#      chmod +x ~/miniconda.sh && \
-#      ~/miniconda.sh -b -p /opt/conda && \
-#      /opt/conda/bin/conda update --prefix /opt/conda anaconda
-#      # rm ~/miniconda.sh && \
-#      # /opt/conda/bin/conda install -y python=$PYTHON_VERSION numpy pyyaml scipy ipython mkl mkl-include ninja cython typing && \
-#      # /opt/conda/bin/conda install -y -c pytorch magma-cuda100 && \
-#      # /opt/conda/bin/conda clean -ya
-# ENV PATH /opt/conda/bin:$PATH
+ENV PATH="/root/miniconda3/bin:${PATH}"
 
-# This must be done before pip so that requirements.txt is available
-# WORKDIR /opt/pytorch
-# COPY . .
-# 
-# RUN git submodule update --init --recursive
-# RUN TORCH_CUDA_ARCH_LIST="3.5 5.2 6.0 6.1 7.0+PTX" TORCH_NVCC_FLAGS="-Xfatbin -compress-all" \
-#     CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" \
-#     pip install -v .
-# 
-# RUN if [ "$WITH_TORCHVISION" = "1" ] ; then git clone https://github.com/pytorch/vision.git && cd vision && pip install -v . ; else echo "building without torchvision" ; fi
+RUN wget https://gist.githubusercontent.com/jordans1882/9bc0cf89a3c0cc6c77e5e8007f5e2b6e/raw/4c89fab4f10ebe2c59875e15a97cf33cd31e512f/environment.yml
 
-RUN git clone https://github.com/jordans1882/emacs-term /root/.emacs.d
+RUN wget https://gist.githubusercontent.com/jordans1882/e7f170a9b20531b6b73e8de314de6d38/raw/7f37752f754597dae42d74c31a7875db59841f15/test.py 
 
-RUN curl -fsSL https://raw.githubusercontent.com/cask/cask/master/go | /root/miniconda3/bin/python && \
-    echo "PATH=/root/.cask/bin:$PATH" >> .bashrc
+RUN conda env create -f environment.yml
 
-RUN ln -s /usr/bin/python3 /usr/bin/python
+RUN git clone https://github.com/jordans1882/emacs-config /root/.emacs-term.d
 
-WORKDIR /root/.emacs-term.d
-RUN cask && cask install && cask build
+RUN curl -fsSL https://raw.githubusercontent.com/cask/cask/master/go | /root/miniconda3/bin/python
+ENV PATH="/root/.cask/bin:${PATH}"
 
-RUN wget -O https://gist.github.com/jordans1882/4c18c19949e2511aeeb4c7300fa1f0bf >> .bashrc
+# WORKDIR /root/.emacs-term.d
+# RUN cask && cask install && cask build
 
-WORKDIR /workspace
-RUN chmod -R a+w .
+RUN wget -O - https://gist.githubusercontent.com/jordans1882/4c18c19949e2511aeeb4c7300fa1f0bf/raw/757e6d66fa1935bbe6653578e5423532532398ae/.bashrc >> .bash_profile
+
+RUN conda init
+
+# WORKDIR /workspace
+# RUN chmod -R a+w .

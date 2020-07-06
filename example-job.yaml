@@ -1,17 +1,15 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: example-job
+  name: gleason-test
 spec:
   template:
     spec:
       containers:
-      - name: example-job
-        image: docker.io/jordans1882/example-image:v1
+      - name: gleason-test
+        image: docker.io/jordans1882/gleason-test:v1
         command:
-        - "spades.py"
-        args:
-        - "-1 /testvol/SampleData/SRR396636.sra_1.fastq -2 /testvol/SampleData/SRR396636.sra_2.fastq --careful --cov-cutoff auto -t 20 -o /testvol/SampleOutput"
+        - "bash /gleasonvol/test.sh"
         volumeMounts:
         - name: gleasonvol
           mountPath: /gleasonvol
@@ -19,11 +17,11 @@ spec:
           limits:
             memory: 80Gi
             cpu: "25"
-            #nvidia.com/gpu: "1"
+            nvidia.com/gpu: "2"
           requests:
             memory: 40Gi
             cpu: "20"
-            #nvidia.com/gpu: "1"
+            nvidia.com/gpu: "2"
       volumes:
       - name: gleasonvol
         persistentVolumeClaim:
